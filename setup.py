@@ -17,7 +17,7 @@ with open('README.rst') as f:
 setup(name='httpcache',
       version=__version__,
       packages=find_packages(),
-      description=("TCP hazard"),
+      description=("An HTTP proxy, with cache."),
       long_description=README,
       author="Alexis Metaireau",
       author_email="alexis@notmyidea.org",
