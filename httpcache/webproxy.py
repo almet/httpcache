@@ -1,50 +1,43 @@
 #!/usr/bin/env python
-import sys
-import urllib2
-from urlparse import urlparse, urljoin
+import hashlib
+
+from webob.dec import wsgify
 
 
-class Application(object):
-    """The WSGI Application doing the requests and the caching
+class CacheRequests(object):
 
-    :param distant: the url of the distant server
-    :param cache: the cache object, if any. It should respect
-                  the 'set' and 'get' methods.
-    """
+    def __init__(self, app, cache=None, cache_timeout=5 * 60,
+                 statsd=None, excluded_paths=None, logger=None):
+        self._cache = cache
+        self._cache_timeout = cache_timeout
+        self._app = app
+        self._excluded_paths = excluded_paths or ()
+        self._logger = logger
+        self._statsd = statsd
 
-    def __init__(self, distant, cache=None):
-        self.distant = distant
-        self.cache = cache
+    @wsgify
+    def __call__(self, req):
+        if self._statsd:
+            self._statsd.incr(req.path_qs)
+        return self._get_from_server_or_cache(req)
 
-    def __call__(self, env, start_response):
-        """The actual WSGI callable.
+    def _get_from_server_or_cache(self, req):
+        if (req.method == 'GET' and self._cache and
+            # we don't want to check the cache if the path is to be ignored
+            not any([req.path in exc for exc in self._excluded_paths])):
 
-        It will do the request if there is the need to, cache it, and otherwise
-        will just return what he knows from the cache.
-        """
-        method = env['REQUEST_METHOD']
-        path = env['PATH_INFO']
-
-        if env['QUERY_STRING']:
-            path += '?' + env['QUERY_STRING']
-
-        # todo need to handle headers as well
-        return self.proxy(method, path, start_response)
-
-    def proxy(self, method, path, start_response):
-        path = urljoin(self.distant, path)
-        try:
-            try:
-                response = urllib2.urlopen(path)
-            except urllib2.HTTPError:
-                response = sys.exc_info()[1]
-            scheme, netloc, path, params, query, fragment = urlparse(path)
-        except Exception:
-            sys.stderr.write('error while reading %s:\n' % path)
-            start_response('502 Bad Gateway', [('Content-Type', 'text/html')])
-            return
+            digest = hashlib.sha224(req.path_qs).hexdigest()
+            key = '%s-%s' % (self._app.href, digest)
+            result = self._cache.get(key)
+            if result is None:
+                result = self._raw_call(req)
+                self._cache.set(key, result, self._cache_timeout)
+            else:
+                self._logger.info('Hitting the cache for %s' % req.path_qs)
         else:
-            start_response('%s %s' % (response.code, response.msg),
-                           response.headers.items())
-            data = response.read()
-            return [data]
+            result = self._raw_call(req)
+        return result
+
+    def _raw_call(self, req):
+        self._logger.info('Hitting the proxied server for %s' % req.path_qs)
+        return req.get_response(self._app)

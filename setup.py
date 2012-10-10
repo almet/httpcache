@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from httpcache import __version__
 
 
-install_requires = []  # 'gevent>=1.0-dev', ]
+install_requires = ['paste', 'webob']
 
 try:
     import argparse     # NOQA
@@ -28,7 +28,7 @@ setup(name='httpcache',
         "License :: OSI Approved :: Apache Software License",
         "Development Status :: 1 - Planning"],
       install_requires=install_requires,
-      test_requires=['nose'],
+      test_requires=['nose', 'requests'],
       test_suite='nose.collector',
       entry_points="""
       [console_scripts]
