@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from httpcache import __version__
 
 
-install_requires = ['wsgiproxy', 'chaussette', 'gevent']
+install_requires = ['wsgiproxy', 'webob', 'chaussette', 'gevent', 'pylibmc', 'statsd']
 
 try:
     import argparse     # NOQA
