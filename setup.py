@@ -28,7 +28,7 @@ setup(name='httpcache',
         "License :: OSI Approved :: Apache Software License",
         "Development Status :: 1 - Planning"],
       install_requires=install_requires,
-      test_requires=['nose', 'requests'],
+      tests_require=['nose', 'requests'],
       test_suite='nose.collector',
       entry_points="""
       [console_scripts]
