@@ -27,6 +27,8 @@ def get_args():
 
     parser.add_argument('--statsd', default=None,
                         help='host:port of the statsd server, if any')
+    parser.add_argument('--statsd-namespace', default='httpcache',
+                        help='namespace to use when sending statsd messages')
 
     parser.add_argument('--excluded-paths', default=None,
                         help='a comma-separated list of paths to exclude')
@@ -60,7 +62,9 @@ def main():
     if args.statsd:
         import statsd
         logger.info('sending informations to statsd at %s' % args.statsd)
-        statsd = statsd.StatsClient(args.statsd.split(':', 1))
+        statsd_host, statsd_port = args.statsd.split(':', 1)
+        statsd = statsd.StatsClient(statsd_host, int(statsd_port),
+                                    args.statsd_namespace)
 
     if args.excluded_paths and not cache:
         logger.info('--excluded-paths ignored; since no cache is being used')
