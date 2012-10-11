@@ -14,9 +14,9 @@ from httpcache import logger
 def get_args():
     parser = argparse.ArgumentParser(description='An HTTP proxy, with cache.')
 
-    parser.add_argument('--local', default='localhost:9201',
+    parser.add_argument('--local', default='localhost:8080',
                         help='host/port of the local proxy')
-    parser.add_argument('--distant', default='localhost:9200',
+    parser.add_argument('--distant', default='localhost:8000',
                         help='host/port of the distant server')
 
     parser.add_argument('--cache', default=None,
