@@ -17,8 +17,6 @@ class CacheRequests(object):
 
     @wsgify
     def __call__(self, req):
-        if self._statsd:
-            self._statsd.incr(req.path_qs)
         return self._get_from_server_or_cache(req)
 
     def _get_from_server_or_cache(self, req):
@@ -33,11 +31,16 @@ class CacheRequests(object):
                 result = self._raw_call(req)
                 self._cache.set(key, result, self._cache_timeout)
             else:
-                self._logger.info('Hitting the cache for %s' % req.path_qs)
+                if self._statsd:
+                    self._statsd.incr('cache-' + req.path_qs)
+                self._logger.debug('Hitting the cache for %s' % req.path_qs)
         else:
+            if self._statsd:
+                self._statsd.incr('call-' + req.path_qs)
             result = self._raw_call(req)
         return result
 
     def _raw_call(self, req):
-        self._logger.info('Hitting the proxied server for %s' % req.path_qs)
+        self._logger.debug('Hitting the proxied server for %s' % req.path_qs)
+        self._statsd.incr('call-' + req.path_qs)
         return req.get_response(self._app)
