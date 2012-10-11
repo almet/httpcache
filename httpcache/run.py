@@ -1,7 +1,9 @@
 import argparse
 import sys
 
-from paste import httpserver
+from chaussette.server import make_server
+from chaussette.backend import backends
+
 from wsgiproxy.app import WSGIProxyApp
 
 from httpcache.webproxy import CacheRequests
@@ -28,6 +30,10 @@ def get_args():
 
     parser.add_argument('--excluded-paths', default=None,
                         help='a comma-separated list of paths to exclude')
+
+    parser.add_argument('--backend', type=str, default='fastgevent',
+                        choices=backends(),
+                        help='The http backend to use to serve the requests.')
 
     log_levels = LOG_LEVELS.keys() + [key.upper() for key in LOG_LEVELS.keys()]
     parser.add_argument('--log-level', dest='loglevel', default='info',
@@ -64,19 +70,24 @@ def main():
         logger.info('paths that will not be cached:' % args.excluded_paths)
 
     host, port = args.local.split(':')
+    port = int(port)
 
     if not args.distant.startswith('http://'):
         args.distant = 'http://%s' % args.distant
 
-    logger.info('Starting httpcache proxy. Listening on %s, proxying to %s' %
-                (args.local, args.distant))
-    try:
-        proxy = WSGIProxyApp(args.distant)
-        app = CacheRequests(proxy, cache=cache, statsd=statsd,
-                            cache_timeout=args.cache_timeout,
-                            excluded_paths=args.excluded_paths, logger=logger)
+    logger.info('Starting httpcache proxy. Listening on %s, proxying to %s, '
+                'using the %s backend'
+                % (args.local, args.distant, args.backend))
 
-        httpserver.serve(app, host, port=port)
+    proxy = WSGIProxyApp(args.distant)
+    app = CacheRequests(proxy, cache=cache, statsd=statsd,
+                        cache_timeout=args.cache_timeout,
+                        excluded_paths=args.excluded_paths, logger=logger)
+
+    httpd = make_server(app, host, port=port, backend=args.backend)
+
+    try:
+        httpd.serve_forever()
     except KeyboardInterrupt:
         sys.exit(0)
     finally:

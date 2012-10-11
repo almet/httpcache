@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from httpcache import __version__
 
 
-install_requires = ['paste', 'webob']
+install_requires = ['wsgiproxy', 'chaussette', 'gevent']
 
 try:
     import argparse     # NOQA
@@ -20,7 +20,7 @@ setup(name='httpcache',
       description=("An HTTP proxy, with cache."),
       long_description=README,
       author="Alexis Metaireau",
-      author_email="alexis@notmyidea.org",
+      author_email="alexis@mozilla.com",
       include_package_data=True,
       zip_safe=False,
       classifiers=[
