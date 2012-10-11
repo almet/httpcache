@@ -5,12 +5,15 @@ from unittest import TestCase
 
 import requests
 
-_CMD = [sys.executable, '-m', 'httpcache.run', '--cache',
-        '--local', '8000',
-        '--distant', 'localhost:8888']
+_CMD = [sys.executable, '-m', 'httpcache.run',
+        '--cache', 'localhost:11211',
+        '--cache-timeout', '1',
+        '--local', 'localhost:8000',
+        '--distant', 'localhost:8080']
 
 _PROXY = 'http://localhost:8000'
-_SERVER = [sys.executable, '-m', 'httpcache.tests.httpserver', '8888']
+_PROXIED = 'http://localhost:8080'
+_SERVER = [sys.executable, '-m', 'httpcache.tests.httpserver', '8080']
 
 
 class TestProxy(TestCase):
@@ -18,12 +21,15 @@ class TestProxy(TestCase):
         self._run = subprocess.Popen(_CMD)
         time.sleep(.5)
         if self._run.poll():
+            self._run.terminate()
             raise ValueError("Could not start the proxy")
 
         self._web = subprocess.Popen(_SERVER)
         time.sleep(.5)
         if self._web.poll():
-            raise ValueError("Could not start the wev server")
+            self._run.terminate()
+            self._web.terminate()
+            raise ValueError("Could not start the web server")
 
     def tearDown(self):
         self._run.terminate()
@@ -34,6 +40,15 @@ class TestProxy(TestCase):
         res = requests.get(_PROXY)
         self.assertEquals(res.status_code, 200)
 
-        # the call count should be 1.
-        from pdb import set_trace; set_trace()
-        request.get(_PROXY + '/count')
+        self.assertEquals(requests.get(_PROXIED + '/count').text, '1')
+
+        res = requests.get(_PROXY)
+        res = requests.get(_PROXY)
+        self.assertEquals(requests.get(_PROXIED + '/count').text, '1')
+
+        # wait a bit so that we invalidate the cache (set to 1s)
+        time.sleep(1)
+        res = requests.get(_PROXY)
+
+        # another call should have been made.
+        self.assertEquals(requests.get(_PROXIED + '/count').text, '2')

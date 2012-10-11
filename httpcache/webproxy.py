@@ -42,5 +42,6 @@ class CacheRequests(object):
 
     def _raw_call(self, req):
         self._logger.debug('Hitting the proxied server for %s' % req.path_qs)
-        self._statsd.incr('call-' + req.path_qs)
+        if self._statsd:
+            self._statsd.incr('call-' + req.path_qs)
         return req.get_response(self._app)
