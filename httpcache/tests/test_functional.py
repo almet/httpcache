@@ -6,6 +6,7 @@ from unittest import TestCase
 import requests
 
 _CMD = [sys.executable, '-m', 'httpcache.run',
+        '--backend', 'wsgiref',
         '--cache', 'localhost:11211',
         '--cache-timeout', '1',
         '--local', 'localhost:8000',
@@ -21,14 +22,12 @@ class TestProxy(TestCase):
         self._run = subprocess.Popen(_CMD)
         time.sleep(.5)
         if self._run.poll():
-            self._run.terminate()
             raise ValueError("Could not start the proxy")
 
         self._web = subprocess.Popen(_SERVER)
         time.sleep(.5)
         if self._web.poll():
             self._run.terminate()
-            self._web.terminate()
             raise ValueError("Could not start the web server")
 
     def tearDown(self):
