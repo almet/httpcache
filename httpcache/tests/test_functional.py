@@ -27,12 +27,12 @@ class TestProxy(TestCase):
         self._web = subprocess.Popen(_SERVER)
         time.sleep(.5)
         if self._web.poll():
-            self._run.terminate()
+            self._run.kill()
             raise ValueError("Could not start the web server")
 
     def tearDown(self):
-        self._run.terminate()
-        self._web.terminate()
+        self._run.kill()
+        self._web.kill()
 
     def test_proxy(self):
         # let's do a simple request first to make sure the proxy works
@@ -51,3 +51,16 @@ class TestProxy(TestCase):
 
         # another call should have been made.
         self.assertEquals(requests.get(_PROXIED + '/count').text, '2')
+
+    def test_body_get_cached(self):
+        # elastic search does the GET requests with a body in it.
+        # checks that these are cached as well, and that requests to the same
+        # resource with a different body aren't
+        requests.get(_PROXY, data={'value': 'this is a test'})
+        self.assertEquals(requests.get(_PROXIED + '/count').text, '1')
+
+        requests.get(_PROXY, data={'value': 'this is a test'})
+        self.assertEquals(requests.get(_PROXIED + '/count').text, '1')
+
+        requests.get(_PROXY, data={'value': 'this is another test'})
+        self.assertEquals(requests.get(_PROXIED + '/count').text, '4')
