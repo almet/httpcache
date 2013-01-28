@@ -33,7 +33,7 @@ def get_args():
     parser.add_argument('--excluded-paths', default=None,
                         help='a comma-separated list of paths to exclude')
 
-    parser.add_argument('--backend', type=str, default='fastgevent',
+    parser.add_argument('--backend', type=str, default='gevent',
                         choices=backends(),
                         help='The http backend to use to serve the requests.')
 
